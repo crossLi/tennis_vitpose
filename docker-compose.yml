@@ -1,0 +1,62 @@
+services:
+  vitpose-cpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vitpose-cpu:local
+    container_name: vitpose-cpu
+    restart: unless-stopped
+    ports:
+      - "${VITPOSE_PORT:-8000}:8000"
+    environment:
+      MODEL_DEVICE: cpu
+      YOLO_CONFIG_DIR: /tmp/Ultralytics
+
+      TENNIS_LOG_LEVEL: ${TENNIS_LOG_LEVEL:-INFO}
+      TENNIS_LOG_RETENTION_DAYS: ${TENNIS_LOG_RETENTION_DAYS:-7}
+
+      POSE_FRAME_STEP: ${POSE_FRAME_STEP:-4}
+      POSE_MAX_FRAMES: ${POSE_MAX_FRAMES:-100}
+      ANALYSIS_API_BASE_URL: ${ANALYSIS_API_BASE_URL:-http://127.0.0.1:8000}
+
+      DETECTION_THRESHOLD: ${DETECTION_THRESHOLD:-0.3}
+      YOLO_DETECTION_THRESHOLD: ${YOLO_DETECTION_THRESHOLD:-0.1}
+      HOG_DETECTION_THRESHOLD: ${HOG_DETECTION_THRESHOLD:-0.0}
+
+      RTMPOSE_CONFIG: ${RTMPOSE_CONFIG:-/app/rtmpose-l_8xb256-420e_coco-256x192.py}
+      RTMPOSE_CHECKPOINT: ${RTMPOSE_CHECKPOINT:-/app/rtmpose-l_simcc-coco_pt-aic-coco_420e-256x192-1352a4d2_20230127.pth}
+      PERSON_DETECTOR_ID: ${PERSON_DETECTOR_ID:-/app/models/detector/yolo26m.pt}
+
+      TENNIS_LLM_PROVIDER: ${TENNIS_LLM_PROVIDER:-dashscope}
+      TENNIS_LLM_MODEL: ${TENNIS_LLM_MODEL:-}
+
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      DASHSCOPE_BASE_URL: ${DASHSCOPE_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      DASHSCOPE_MODEL: ${DASHSCOPE_MODEL:-}
+
+      MOONSHOT_API_KEY: ${MOONSHOT_API_KEY:-}
+      MOONSHOT_BASE_URL: ${MOONSHOT_BASE_URL:-https://api.moonshot.cn/v1}
+      MOONSHOT_MODEL: ${MOONSHOT_MODEL:-}
+
+      TOKEN_PLAN_API_KEY: ${TOKEN_PLAN_API_KEY:-}
+      TOKEN_PLAN_BASE_URL: ${TOKEN_PLAN_BASE_URL:-https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1}
+      TOKEN_PLAN_MODEL: ${TOKEN_PLAN_MODEL:-}
+    volumes:
+      - ./analysis_tasks:/app/analysis_tasks
+      - ./logs:/app/logs
+      - ./app.py:/app/app.py:ro
+      - ./webapp/dist:/app/webapp/dist:ro
+      - ./tennis_coach:/app/tennis_coach:ro
+      - ./extract_pose_features.py:/app/extract_pose_features.py:ro
+      - ./summarize_pose_features.py:/app/summarize_pose_features.py:ro
+      - ./visualize_pose.py:/app/visualize_pose.py:ro
+      - ./visualize_pose_video.py:/app/visualize_pose_video.py:ro
+      - ./rtmpose-l_8xb256-420e_coco-256x192.py:/app/rtmpose-l_8xb256-420e_coco-256x192.py:ro
+      - ./rtmpose-l_simcc-coco_pt-aic-coco_420e-256x192-1352a4d2_20230127.pth:/app/rtmpose-l_simcc-coco_pt-aic-coco_420e-256x192-1352a4d2_20230127.pth:ro
+      - ./models/detector:/app/models/detector:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
